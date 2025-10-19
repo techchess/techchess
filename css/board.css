@@ -1,0 +1,633 @@
+/* Chess Board Styles */
+.chess-board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    width: 700px;
+    height: 700px;
+    position: relative;
+}
+
+.chess-square {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+/* Board notation (coordinates) */
+.chess-square::before,
+.chess-square::after {
+    position: absolute;
+    font-size: 12px;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 15;
+}
+
+/* File letters (a-h) on bottom rank */
+.chess-square[data-rank="7"]::after {
+    content: attr(data-file-letter);
+    bottom: 2px;
+    right: 3px;
+}
+
+/* Rank numbers (1-8) on left file */
+.chess-square[data-file="0"]::before {
+    content: attr(data-rank-number);
+    top: 2px;
+    left: 3px;
+}
+
+/* Color notation based on square color - Default (brown) */
+.chess-square.light::before,
+.chess-square.light::after {
+    color: #B58863;
+}
+
+.chess-square.dark::before,
+.chess-square.dark::after {
+    color: #F0D9B5;
+}
+
+/* Board color themes */
+.board-brown .chess-square.light {
+    background-color: #F0D9B5;
+}
+
+.board-brown .chess-square.dark {
+    background-color: #B58863;
+}
+
+.board-brown .chess-square.light::before,
+.board-brown .chess-square.light::after {
+    color: #B58863;
+}
+
+.board-brown .chess-square.dark::before,
+.board-brown .chess-square.dark::after {
+    color: #F0D9B5;
+}
+
+.board-green .chess-square.light {
+    background-color: #EEEEEE;
+}
+
+.board-green .chess-square.dark {
+    background-color: #769656;
+}
+
+.board-green .chess-square.light::before,
+.board-green .chess-square.light::after {
+    color: #769656;
+}
+
+.board-green .chess-square.dark::before,
+.board-green .chess-square.dark::after {
+    color: #EEEEEE;
+}
+
+.board-blue .chess-square.light {
+    background-color: #E6E6FA;
+}
+
+.board-blue .chess-square.dark {
+    background-color: #4682B4;
+}
+
+.board-blue .chess-square.light::before,
+.board-blue .chess-square.light::after {
+    color: #4682B4;
+}
+
+.board-blue .chess-square.dark::before,
+.board-blue .chess-square.dark::after {
+    color: #E6E6FA;
+}
+
+.board-purple .chess-square.light {
+    background-color: #E8D5F2;
+}
+
+.board-purple .chess-square.dark {
+    background-color: #8B5A9F;
+}
+
+.board-purple .chess-square.light::before,
+.board-purple .chess-square.light::after {
+    color: #8B5A9F;
+}
+
+.board-purple .chess-square.dark::before,
+.board-purple .chess-square.dark::after {
+    color: #E8D5F2;
+}
+
+.board-grey .chess-square.light {
+    background-color: #d4d4d4;
+}
+
+.board-grey .chess-square.dark {
+    background-color: #959494;
+}
+
+.board-grey .chess-square.light::before,
+.board-grey .chess-square.light::after {
+    color: #959494;
+}
+
+.board-grey .chess-square.dark::before,
+.board-grey .chess-square.dark::after {
+    color: #d4d4d4;
+}
+
+/* Piece styles */
+.chess-piece {
+    width: 100%;
+    height: 100%;
+    background-size: 120%;
+    background-repeat: no-repeat;
+    background-position: center;
+    cursor: grab;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+
+.chess-piece.dragging {
+    position: fixed !important;
+    cursor: grabbing;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 1;
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.4));
+    transition: none;
+}
+
+/* Checkmate animations */
+
+/* Winner square background - stays solid green */
+.square-winner-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(129, 182, 76, 0.85);
+    z-index: 2;
+    animation: flash-in 0.5s ease-out;
+}
+
+@keyframes flash-in {
+    0% { opacity: 0; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* Loser square background - stays solid red */
+.square-loser-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 58, 48, 0.85);
+    z-index: 2;
+    animation: flash-in 0.5s ease-out;
+}
+
+/* Winner crown animation with green circle */
+@keyframes winner-badge-shrink {
+    0% {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80px;
+        height: 80px;
+        opacity: 0;
+    }
+    20% {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80px;
+        height: 80px;
+        opacity: 1;
+    }
+    70% {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80px;
+        height: 80px;
+        opacity: 1;
+    }
+    100% {
+        top: 10%;
+        left: 85%;
+        transform: translate(-50%, -50%);
+        width: 28px;
+        height: 28px;
+        opacity: 1;
+    }
+}
+
+.king-winner-badge {
+    position: absolute;
+    background-color: #81b64c;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: winner-badge-shrink 1.2s ease-out forwards;
+    box-shadow: 0 0 0 3px rgba(129, 182, 76, 0.4);
+}
+
+.king-winner-badge::before {
+    content: '♔';
+    color: white;
+    font-size: 48px;
+}
+
+/* Loser king animation - falls over with red circle */
+@keyframes loser-badge-fall {
+    0% {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(0deg);
+        width: 80px;
+        height: 80px;
+        opacity: 0;
+    }
+    20% {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(0deg);
+        width: 80px;
+        height: 80px;
+        opacity: 1;
+    }
+    40% {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(45deg);
+        width: 80px;
+        height: 80px;
+        opacity: 1;
+    }
+    70% {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(90deg);
+        width: 80px;
+        height: 80px;
+        opacity: 1;
+    }
+    100% {
+        top: 10%;
+        left: 85%;
+        transform: translate(-50%, -50%) rotate(90deg);
+        width: 28px;
+        height: 28px;
+        opacity: 1;
+    }
+}
+
+.king-loser-badge {
+    position: absolute;
+    background-color: #ff3a30;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: loser-badge-fall 1.2s ease-out forwards;
+    box-shadow: 0 0 0 3px rgba(255, 58, 48, 0.4);
+    background-image: url('../images/classic-bk.png');
+    background-size: 70%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* Resigned king animation - flag icon */
+@keyframes resigned-badge-shrink {
+    0% {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80px;
+        height: 80px;
+        opacity: 0;
+    }
+    20% {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80px;
+        height: 80px;
+        opacity: 1;
+    }
+    70% {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80px;
+        height: 80px;
+        opacity: 1;
+    }
+    100% {
+        top: 10%;
+        left: 85%;
+        transform: translate(-50%, -50%);
+        width: 28px;
+        height: 28px;
+        opacity: 1;
+    }
+}
+
+.king-resigned-badge {
+    position: absolute;
+    background-color: #ff3a30;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: resigned-badge-shrink 1.2s ease-out forwards;
+    box-shadow: 0 0 0 3px rgba(255, 58, 48, 0.4);
+}
+
+.king-resigned-badge::before {
+    content: '⚑';
+    color: black;
+    font-size: 40px;
+}
+
+/* Move indicators */
+.legal-move {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.legal-move.capture {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: none;
+    border: 6px solid rgba(0, 0, 0, 0.15);
+    box-sizing: border-box;
+}
+
+/* Highlighting */
+.square-highlight {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.square-highlight.selected {
+    background-color: rgba(255, 255, 0, 0.4);
+}
+
+.square-highlight.last-move {
+    background-color: rgba(255, 255, 0, 0.3);
+}
+
+.square-highlight.drag-over {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 4px #cacaca;
+}
+
+/* Different highlights for light and dark squares */
+.chess-square.light .square-highlight.selected {
+    background-color: rgba(255, 255, 0, 0.5);
+}
+
+.chess-square.dark .square-highlight.selected {
+    background-color: rgba(255, 255, 0, 0.3);
+}
+
+.chess-square.light .square-highlight.last-move {
+    background-color: rgba(255, 255, 0, 0.4);
+}
+
+.chess-square.dark .square-highlight.last-move {
+    background-color: rgba(255, 255, 0, 0.2);
+}
+
+/* Red highlighting for right-click annotations */
+.square-highlight-red {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.chess-square.light .square-highlight-red {
+    background-color: rgba(190, 40, 40, 0.7);
+}
+
+.chess-square.dark .square-highlight-red {
+    background-color: rgba(200, 40, 40, 0.6);
+}
+
+/* Game content layout */
+.game-content {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+/* Move list panel */
+.move-list-container {
+    width: 400px;
+    height: 700px;
+    background: #262421;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.move-list-header {
+    padding: 15px 20px;
+    background: #1d1b19;
+    color: #fff;
+    font-weight: 600;
+    font-size: 16px;
+    border-bottom: 1px solid #3c3937;
+}
+
+.move-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.move-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.move-list::-webkit-scrollbar-track {
+    background: #1d1b19;
+}
+
+.move-list::-webkit-scrollbar-thumb {
+    background: #3c3937;
+    border-radius: 4px;
+}
+
+.move-list::-webkit-scrollbar-thumb:hover {
+    background: #4a4744;
+}
+
+.move-row {
+    display: grid;
+    grid-template-columns: 40px 90px 90px 120px;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    align-items: center;
+}
+
+.move-row:hover {
+    background: #2e2b28;
+}
+
+.move-number {
+    color: #999;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.move-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #e8e8e8;
+    font-size: 15px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.move-item:hover {
+    background: #3c3937;
+}
+
+.move-item .piece-symbol {
+    font-size: 18px;
+}
+
+.move-item .move-notation {
+    font-weight: 500;
+}
+
+.move-times-container {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.move-time-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.time-text {
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.time-bar {
+    width: 100%;
+    height: 4px;
+    background: #1d1b19;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.time-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.time-bar-fill.white {
+    background: #e8e8e8;
+}
+
+.time-bar-fill.black {
+    background: #4a4744;
+}
+
+/* Responsive board */
+@media (max-width: 1200px) {
+    .game-content {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .move-list-container {
+        width: 700px;
+        height: 280px;
+    }
+    
+    .move-row {
+        grid-template-columns: 35px 80px 80px 110px;
+    }
+}
+
+@media (max-width: 768px) {
+    .chess-board {
+        width: 90vw;
+        height: 90vw;
+        max-width: 500px;
+        max-height: 500px;
+    }
+    
+    .move-list-container {
+        width: 90vw;
+        max-width: 500px;
+        height: 250px;
+    }
+    
+    .move-row {
+        grid-template-columns: 30px 70px 70px 100px;
+        gap: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .chess-board {
+        width: 95vw;
+        height: 95vw;
+    }
+    
+    .move-list-container {
+        width: 95vw;
+        height: 200px;
+    }
+}

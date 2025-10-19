@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Tech Chess</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1 class="auth-title">♟️ Welcome Back</h1>
+            <p class="auth-subtitle">Login to continue playing</p>
+
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="login-username">Username or Email</label>
+                    <input type="text" id="login-username" name="username" required 
+                           placeholder="Enter your username or email" autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" name="password" required 
+                           placeholder="Enter your password" autocomplete="current-password">
+                </div>
+
+                <div id="error-message" class="error-message"></div>
+                <div id="success-message" class="success-message"></div>
+
+                <button type="submit" class="auth-button" id="login-btn">
+                    Login
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
+                <p><a href="landing.html">← Back to Home</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth-login.js"></script>
+</body>
+</html>

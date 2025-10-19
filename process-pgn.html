@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PGN Processor - Sebastian Lague Style</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/1.0.0-beta.3/chess.min.js"></script>
+    <script>
+        // Make Chess available globally for the trainer
+        window.Chess = Chess;
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background-color: #fafafa;
+        }
+        .upload-area.dragover {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        .success {
+            background-color: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Chess Opening Book Trainer</h1>
+        <p>Based on Sebastian Lague's approach - process real chess games to build an intelligent opening book!</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <p>📁 Drop your PGN file here or click to select</p>
+            <input type="file" id="fileInput" accept=".pgn,.txt" />
+            <p><small>Supports .pgn files or .txt files containing PGN data</small></p>
+        </div>
+        
+        <div style="text-align: center;">
+            <button id="processBtn" disabled>🚀 Process Games & Build Opening Book</button>
+        </div>
+        
+        <div class="progress" id="progressContainer" style="display: none;">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script src="js/bots/lichess-pgn-parser.js"></script>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const processBtn = document.getElementById('processBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const results = document.getElementById('results');
+        
+        let selectedFile = null;
+        let parser = new LichessPGNParser();
+        
+        // File upload handling
+        fileInput.addEventListener('change', handleFileSelect);
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                processBtn.disabled = false;
+                showResults('success', `📁 Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+            }
+        }
+        
+        function handleDragOver(event) {
+            event.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+        
+        function handleDragLeave(event) {
+            event.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+        
+        function handleDrop(event) {
+            event.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                selectedFile = files[0];
+                fileInput.files = files;
+                processBtn.disabled = false;
+                showResults('success', `📁 Selected: ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`);
+            }
+        }
+        
+        // Process button
+        processBtn.addEventListener('click', processFile);
+        
+        async function processFile() {
+            if (!selectedFile) return;
+            
+            processBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            showResults('', '🔄 Processing games... This may take a while for large files.');
+            
+            try {
+                const text = await readFileAsText(selectedFile);
+                showResults('', '📊 Building opening book from Lichess game data...');
+                
+                // Process the PGN data with progress updates
+                const openingBook = await parser.parseLichessPGN(text, (progress, current, total) => {
+                    updateProgress(progress);
+                    showResults('', `📊 Processing games... ${current}/${total} (${progress.toFixed(1)}%)`);
+                });
+                
+                // Generate JavaScript code for the opening book
+                const jsCode = generateOpeningBookJS(openingBook);
+                
+                showResults('success', `
+                    ✅ Successfully processed ${selectedFile.name}!
+                    <br><br>
+                    📈 <strong>Opening Book Statistics:</strong>
+                    <br>• White lines: ${openingBook.white.length}
+                    <br>• Black lines: ${openingBook.black.length}
+                    <br>• Total positions: ${parser.gameDatabase.size}
+                    <br>• Games processed: ${parser.processedGames}
+                    <br><br>
+                    📋 <strong>Generated Opening Book Code:</strong>
+                    <pre>${jsCode}</pre>
+                    <br>
+                    💡 <strong>Next Steps:</strong>
+                    <br>1. Copy the code above
+                    <br>2. Replace the opening book in martina.js
+                    <br>3. Your bot will now play like the masters!
+                `);
+                
+            } catch (error) {
+                showResults('error', `❌ Error processing file: ${error.message}`);
+            } finally {
+                processBtn.disabled = false;
+                progressContainer.style.display = 'none';
+            }
+        }
+        
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = e => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
+            });
+        }
+        
+        function generateOpeningBookJS(openingBook) {
+            return `// Generated Opening Book from ${selectedFile.name}
+// Based on real master games - Sebastian Lague style!
+
+const MASTER_OPENING_BOOK = {
+    white: [
+${openingBook.white.map(line => `        "${line}"`).join(',\n')}
+    ],
+    black: [
+${openingBook.black.map(line => `        "${line}"`).join(',\n')}
+    ]
+};`;
+        }
+        
+        function showResults(type, message) {
+            results.className = `results ${type}`;
+            results.innerHTML = message;
+        }
+        
+        // Update progress (simplified)
+        function updateProgress(percent) {
+            progressBar.style.width = percent + '%';
+        }
+    </script>
+</body>
+</html>

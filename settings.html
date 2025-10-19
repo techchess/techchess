@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Tech Chess</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="css/main.css?v=4">
+    <link rel="stylesheet" href="css/board.css">
+    <script src="js/auth-check.js"></script>
+</head>
+<body>
+    <!-- Settings Page -->
+    <div class="settings-page">
+        <!-- Sidebar -->
+        <div class="menu-sidebar">
+            <a href="index.html" class="menu-sidebar-btn">Play</a>
+            <a href="settings.html" class="menu-sidebar-btn active">Settings</a>
+            <div style="margin-top: auto; padding: 1rem; border-top: 2px solid rgba(255,255,255,0.1);">
+                <div id="user-info" style="color: white; margin-bottom: 0.5rem; font-size: 0.9rem;"></div>
+                <button id="logout-btn" style="width: 100%; padding: 0.5rem; background: rgba(255,0,0,0.2); color: white; border: 1px solid rgba(255,0,0,0.5); border-radius: 5px; cursor: pointer;">Logout</button>
+            </div>
+        </div>
+        
+        <!-- Settings Content -->
+        <div class="settings-container">
+            <h1>Settings</h1>
+            
+            <div class="settings-content">
+                <div class="settings-grid">
+                    <!-- Piece Style -->
+                    <div class="setting-group">
+                        <label>Piece Style:</label>
+                        
+                        <!-- Classic -->
+                        <div class="piece-style-option active" data-style="classic">
+                            <div class="piece-style-header">
+                                <span>Classic</span>
+                            </div>
+                            <div class="piece-preview-row">
+                                <img src="images/classic-wk.png" alt="King">
+                                <img src="images/classic-bq.png" alt="Queen">
+                                <img src="images/classic-wr.png" alt="Rook">
+                                <img src="images/classic-bb.png" alt="Bishop">
+                                <img src="images/classic-wn.png" alt="Knight">
+                                <img src="images/classic-bp.png" alt="Pawn">
+                            </div>
+                        </div>
+
+                        <!-- Modern -->
+                        <div class="piece-style-option" data-style="modern">
+                            <div class="piece-style-header">
+                                <span>Modern</span>
+                            </div>
+                            <div class="piece-preview-row">
+                                <img src="images/modern-wk.png" alt="King">
+                                <img src="images/modern-bq.png" alt="Queen">
+                                <img src="images/modern-wr.png" alt="Rook">
+                                <img src="images/modern-bb.png" alt="Bishop">
+                                <img src="images/modern-wn.png" alt="Knight">
+                                <img src="images/modern-bp.png" alt="Pawn">
+                            </div>
+                        </div>
+
+                        <!-- Stone -->
+                        <div class="piece-style-option" data-style="stone">
+                            <div class="piece-style-header">
+                                <span>Stone</span>
+                            </div>
+                            <div class="piece-preview-row">
+                                <img src="images/stone-wk.png" alt="King">
+                                <img src="images/stone-bq.png" alt="Queen">
+                                <img src="images/stone-wr.png" alt="Rook">
+                                <img src="images/stone-bb.png" alt="Bishop">
+                                <img src="images/stone-wn.png" alt="Knight">
+                                <img src="images/stone-bp.png" alt="Pawn">
+                            </div>
+                        </div>
+
+                        <!-- Neo -->
+                        <div class="piece-style-option" data-style="neo">
+                            <div class="piece-style-header">
+                                <span>Neo</span>
+                            </div>
+                            <div class="piece-preview-row">
+                                <img src="https://images.chesscomfiles.com/chess-themes/pieces/cases/150/wk.png" alt="King">
+                                <img src="https://images.chesscomfiles.com/chess-themes/pieces/cases/150/bq.png" alt="Queen">
+                                <img src="https://images.chesscomfiles.com/chess-themes/pieces/cases/150/wr.png" alt="Rook">
+                                <img src="https://images.chesscomfiles.com/chess-themes/pieces/cases/150/bb.png" alt="Bishop">
+                                <img src="https://images.chesscomfiles.com/chess-themes/pieces/cases/150/wn.png" alt="Knight">
+                                <img src="https://images.chesscomfiles.com/chess-themes/pieces/cases/150/bp.png" alt="Pawn">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Board Color -->
+                    <div class="setting-group">
+                        <label>Board Color:</label>
+                        
+                        <div class="board-colors-grid">
+                            <!-- Brown -->
+                            <div class="board-color-option active" data-theme="brown">
+                                <div class="board-color-header">
+                                    <span>Brown</span>
+                                </div>
+                                <div class="board-color-preview">
+                                    <div class="preview-square light-brown"></div>
+                                    <div class="preview-square dark-brown"></div>
+                                    <div class="preview-square dark-brown"></div>
+                                    <div class="preview-square light-brown"></div>
+                                </div>
+                            </div>
+
+                            <!-- Green -->
+                            <div class="board-color-option" data-theme="green">
+                                <div class="board-color-header">
+                                    <span>Green</span>
+                                </div>
+                                <div class="board-color-preview">
+                                    <div class="preview-square light-green"></div>
+                                    <div class="preview-square dark-green"></div>
+                                    <div class="preview-square dark-green"></div>
+                                    <div class="preview-square light-green"></div>
+                                </div>
+                            </div>
+
+                            <!-- Blue -->
+                            <div class="board-color-option" data-theme="blue">
+                                <div class="board-color-header">
+                                    <span>Blue</span>
+                                </div>
+                                <div class="board-color-preview">
+                                    <div class="preview-square light-blue"></div>
+                                    <div class="preview-square dark-blue"></div>
+                                    <div class="preview-square dark-blue"></div>
+                                    <div class="preview-square light-blue"></div>
+                                </div>
+                            </div>
+
+                            <!-- Purple -->
+                            <div class="board-color-option" data-theme="purple">
+                                <div class="board-color-header">
+                                    <span>Purple</span>
+                                </div>
+                                <div class="board-color-preview">
+                                    <div class="preview-square light-purple"></div>
+                                    <div class="preview-square dark-purple"></div>
+                                    <div class="preview-square dark-purple"></div>
+                                    <div class="preview-square light-purple"></div>
+                                </div>
+                            </div>
+
+                            <!-- Grey -->
+                            <div class="board-color-option" data-theme="grey">
+                                <div class="board-color-header">
+                                    <span>Grey</span>
+                                </div>
+                                <div class="board-color-preview">
+                                    <div class="preview-square light-grey"></div>
+                                    <div class="preview-square dark-grey"></div>
+                                    <div class="preview-square dark-grey"></div>
+                                    <div class="preview-square light-grey"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Save Button -->
+                <button id="save-settings-btn" class="save-settings-btn">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/sounds.js"></script>
+    <script src="js/bot-performance-config.js"></script>
+    <script src="master_opening_book.js"></script>
+    <!-- Bitboard Engine (Ultra-Fast) -->
+    <script src="js/bots/bitboard-engine.js"></script>
+    <script src="js/bots/bitboard-adapter.js"></script>
+    <script src="js/bots/martina-bitboard.js"></script>
+    <!-- Original Chess.js version (backup) -->
+    <script src="js/bots/martina.js"></script>
+    <script src="js/ui.js"></script>
+    <script>
+        // Settings page JavaScript
+        // API_URL is now defined in config.js
+
+        // Load settings from backend
+        async function loadUserSettings() {
+            const token = localStorage.getItem('authToken');
+            const chessUI = window.chessUI;
+            if (!token || !chessUI) return;
+
+            try {
+                const response = await fetch(`${API_URL}/settings`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const settings = await response.json();
+                    chessUI.gameSettings.pieceStyle = settings.pieceStyle;
+                    chessUI.gameSettings.boardTheme = settings.boardColor;
+                    
+                    // Update UI to reflect loaded settings
+                    document.querySelectorAll('.piece-style-option').forEach(option => {
+                        option.classList.toggle('active', option.dataset.style === settings.pieceStyle);
+                    });
+                    document.querySelectorAll('.board-color-option').forEach(option => {
+                        option.classList.toggle('active', option.dataset.theme === settings.boardColor);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+            }
+        }
+
+        // Save settings to backend
+        async function saveUserSettings() {
+            const token = localStorage.getItem('authToken');
+            const chessUI = window.chessUI;
+            if (!token || !chessUI) return;
+
+            try {
+                const response = await fetch(`${API_URL}/settings`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        pieceStyle: chessUI.gameSettings.pieceStyle,
+                        boardColor: chessUI.gameSettings.boardTheme
+                    })
+                });
+
+                if (response.ok) {
+                    chessUI.saveSettings(); // Also save locally
+                    showNotification('Settings saved successfully!', 'success', 2000);
+                } else {
+                    showNotification('Failed to save settings', 'error', 2000);
+                }
+            } catch (error) {
+                console.error('Failed to save settings:', error);
+                showNotification('Failed to save settings', 'error', 2000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Display user info and handle logout
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const userInfoDiv = document.getElementById('user-info');
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            if (currentUser.username) {
+                userInfoDiv.textContent = `👤 ${currentUser.username}`;
+            }
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'landing.html';
+                });
+            }
+
+            // Initialize UI to load saved settings
+            window.chessUI = new ChessUI();
+            window.chessUI.loadSettings();
+            
+            // Load settings from backend (overrides local settings)
+            await loadUserSettings();
+            
+            // Piece style selection (just update UI, don't save yet)
+            document.querySelectorAll('.piece-style-option').forEach(option => {
+                option.addEventListener('click', (e) => {
+                    document.querySelectorAll('.piece-style-option').forEach(o => o.classList.remove('active'));
+                    option.classList.add('active');
+                    
+                    const style = option.dataset.style;
+                    window.chessUI.gameSettings.pieceStyle = style;
+                });
+            });
+            
+            // Board color selection (just update UI, don't save yet)
+            document.querySelectorAll('.board-color-option').forEach(option => {
+                option.addEventListener('click', (e) => {
+                    document.querySelectorAll('.board-color-option').forEach(o => o.classList.remove('active'));
+                    option.classList.add('active');
+                    
+                    const theme = option.dataset.theme;
+                    window.chessUI.gameSettings.boardTheme = theme;
+                });
+            });
+            
+            // Save button - save to backend
+            document.getElementById('save-settings-btn').addEventListener('click', saveUserSettings);
+        });
+    </script>
+</body>
+</html>
+
+
+
