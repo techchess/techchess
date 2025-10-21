@@ -54,7 +54,7 @@ class ChessUI {
         this.setupEventListeners();
         
         // Load saved settings first
-        this.loadSettings();
+        await this.loadSettings();
         
         // Check for saved game state
         const savedGame = await this.loadGameState();
@@ -312,6 +312,7 @@ class ChessUI {
         document.querySelectorAll('.piece-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.style === style);
         });
+        this.saveSettings();
     }
 
     // Select board theme
@@ -320,6 +321,7 @@ class ChessUI {
         document.querySelectorAll('.board-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.theme === theme);
         });
+        this.saveSettings();
     }
 
     // Select difficulty
@@ -332,6 +334,8 @@ class ChessUI {
         // Update takeback settings
         this.maxTakebacks = difficulty === 'too-easy' ? Infinity : 
                            difficulty === 'just-for-fun' ? 3 : 0;
+        
+        this.saveSettings();
     }
 
     // Start the game
@@ -1367,6 +1371,7 @@ class ChessUI {
         }
     }
 
+
     // Get piece image URL based on current style
     getPieceImageUrl(pieceNotation) {
         const style = this.gameSettings.pieceStyle;
@@ -1523,12 +1528,17 @@ class ChessUI {
     }
 
     // End game
-    endGame(reason) {
+    async endGame(reason) {
         let message = '';
+        let result = '';
+        let terminationReason = '';
+        
         switch (reason) {
             case 'checkmate':
-                message = this.chessEngine.turn() === this.gameSettings.playerColor[0] ? 
-                    'You lost by checkmate!' : 'You won by checkmate!';
+                const playerWon = this.chessEngine.turn() !== this.gameSettings.playerColor[0];
+                message = playerWon ? 'You won by checkmate!' : 'You lost by checkmate!';
+                result = playerWon ? 'win' : 'loss';
+                terminationReason = 'Checkmate';
                 
                 // Animate the checkmated king
                 this.animateCheckmatedKing();
@@ -1536,14 +1546,29 @@ class ChessUI {
                 break;
             case 'stalemate':
                 message = 'Game ended in stalemate';
+                result = 'draw';
+                terminationReason = 'Stalemate';
+                this.animateDraw();
                 playEndGameSound();
                 break;
             case 'draw':
                 message = 'Game ended in a draw';
+                result = 'draw';
+                terminationReason = 'Draw by agreement';
+                this.animateDraw();
+                playEndGameSound();
+                break;
+            case 'insufficient':
+                message = 'Game ended in a draw (insufficient material)';
+                result = 'draw';
+                terminationReason = 'Insufficient material';
+                this.animateDraw();
                 playEndGameSound();
                 break;
             case 'resignation':
                 message = 'You resigned';
+                result = 'loss';
+                terminationReason = 'Resignation';
                 
                 // Animate the resignation with flag
                 this.animateResignation();
@@ -1560,41 +1585,225 @@ class ChessUI {
             piece.style.opacity = '0.7';
         });
         
+        // Archive the completed game
+        await this.archiveGame(result, terminationReason);
+        
         // Clear saved game state when game ends
         this.clearGameState();
         
         // Return to main menu after a brief delay
         setTimeout(() => {
             this.showMainMenu();
-        }, 2000);
+        }, 3000);
     }
     
-    // Save settings to localStorage
-    saveSettings() {
+    // Archive completed game
+    async archiveGame(result, terminationReason) {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            console.log('❌ No auth token - cannot archive game');
+            return;
+        }
+        
+        const history = this.chessEngine.history({ verbose: true });
+        const botColor = this.gameSettings.playerColor === 'white' ? 'black' : 'white';
+        
         try {
-            console.log('💾 Saving settings:', this.gameSettings);
-            localStorage.setItem('techChessSettings', JSON.stringify(this.gameSettings));
-            console.log('💾 Settings saved successfully');
+            const response = await fetch(`${API_URL}/archive-game`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    pgn: this.chessEngine.pgn(),
+                    userColor: this.gameSettings.playerColor,
+                    botColor: botColor,
+                    result: result,
+                    terminationReason: terminationReason,
+                    moveCount: history.length,
+                    timestamp: new Date().toISOString()
+                })
+            });
+            
+            if (response.ok) {
+                console.log('📦 Game archived successfully');
+            } else {
+                console.error('Failed to archive game');
+            }
         } catch (error) {
-            console.error('Failed to save settings:', error);
+            console.error('Failed to archive game:', error);
         }
     }
     
-    // Load settings from localStorage
-    loadSettings() {
+    // Animate draw (grey squares with equals signs floating up)
+    animateDraw() {
+        const board = document.getElementById('chess-board');
+        if (!board) return;
+        
+        // Find both king positions
+        const squares = this.chessEngine.board();
+        let whiteKingSquare = null;
+        let blackKingSquare = null;
+        
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = squares[row][col];
+                if (piece && piece.type === 'k') {
+                    const file = String.fromCharCode(97 + col);
+                    const rank = 8 - row;
+                    const square = `${file}${rank}`;
+                    
+                    if (piece.color === 'w') {
+                        whiteKingSquare = square;
+                    } else {
+                        blackKingSquare = square;
+                    }
+                }
+            }
+        }
+        
+        // Animate both king squares
+        [whiteKingSquare, blackKingSquare].forEach(square => {
+            if (!square) return;
+            
+            const squareElement = document.querySelector(`[data-square="${square}"]`);
+            if (!squareElement) return;
+            
+            // Add grey overlay to square
+            const overlay = document.createElement('div');
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(128, 128, 128, 0.7)';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.fontSize = '3rem';
+            overlay.style.color = 'white';
+            overlay.style.zIndex = '100';
+            overlay.textContent = '=';
+            squareElement.appendChild(overlay);
+            
+            // Animate floating up and shrinking
+            overlay.animate([
+                { transform: 'translateY(0) scale(1)', opacity: 1 },
+                { transform: 'translateY(-200px) translateX(200px) scale(0.3)', opacity: 0 }
+            ], {
+                duration: 2000,
+                easing: 'ease-out'
+            });
+            
+            // Remove after animation
+            setTimeout(() => overlay.remove(), 2000);
+        });
+    }
+    
+    // Save settings to server
+    async saveSettings() {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            console.log('❌ No auth token - saving to localStorage only');
+            try {
+                localStorage.setItem('techChessSettings', JSON.stringify(this.gameSettings));
+            } catch (error) {
+                console.error('Failed to save settings to localStorage:', error);
+            }
+            return;
+        }
+        
         try {
-            const saved = localStorage.getItem('techChessSettings');
-            console.log('📂 Raw saved settings from localStorage:', saved);
-            if (saved) {
-                const settings = JSON.parse(saved);
-                console.log('📂 Parsed settings:', settings);
-                this.gameSettings = { ...this.gameSettings, ...settings };
-                console.log('📂 Final gameSettings after merge:', this.gameSettings);
+            console.log('💾 Saving settings to server:', this.gameSettings);
+            const response = await fetch(`${API_URL}/settings`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    pieceStyle: this.gameSettings.pieceStyle,
+                    boardTheme: this.gameSettings.boardTheme,
+                    difficulty: this.gameSettings.difficulty
+                })
+            });
+            
+            if (response.ok) {
+                console.log('💾 Settings saved to server successfully');
             } else {
-                console.log('📂 No saved settings found, using defaults:', this.gameSettings);
+                console.error('Failed to save settings to server');
+                // Fallback to localStorage
+                localStorage.setItem('techChessSettings', JSON.stringify(this.gameSettings));
             }
         } catch (error) {
-            console.error('Failed to load settings:', error);
+            console.error('Failed to save settings:', error);
+            // Fallback to localStorage
+            try {
+                localStorage.setItem('techChessSettings', JSON.stringify(this.gameSettings));
+            } catch (e) {
+                console.error('Failed to save to localStorage:', e);
+            }
+        }
+    }
+    
+    // Load settings from server (or localStorage as fallback)
+    async loadSettings() {
+        const token = localStorage.getItem('authToken');
+        
+        if (!token) {
+            console.log('❌ No auth token - loading from localStorage only');
+            try {
+                const saved = localStorage.getItem('techChessSettings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    this.gameSettings = { ...this.gameSettings, ...settings };
+                    console.log('📂 Settings loaded from localStorage:', this.gameSettings);
+                }
+            } catch (error) {
+                console.error('Failed to load settings from localStorage:', error);
+            }
+            return;
+        }
+        
+        try {
+            console.log('📂 Loading settings from server...');
+            const response = await fetch(`${API_URL}/settings`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.settings) {
+                    this.gameSettings = { ...this.gameSettings, ...data.settings };
+                    console.log('📂 Settings loaded from server:', this.gameSettings);
+                    return;
+                }
+            }
+            
+            // Fallback to localStorage if server fails
+            console.log('⚠️ Server settings failed, trying localStorage...');
+            const saved = localStorage.getItem('techChessSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                this.gameSettings = { ...this.gameSettings, ...settings };
+                console.log('📂 Settings loaded from localStorage:', this.gameSettings);
+            }
+        } catch (error) {
+            console.error('Failed to load settings from server:', error);
+            // Fallback to localStorage
+            try {
+                const saved = localStorage.getItem('techChessSettings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    this.gameSettings = { ...this.gameSettings, ...settings };
+                    console.log('📂 Settings loaded from localStorage (fallback):', this.gameSettings);
+                }
+            } catch (e) {
+                console.error('Failed to load from localStorage:', e);
+            }
         }
     }
     
@@ -1714,11 +1923,21 @@ class ChessUI {
             // Initialize chess engine
             this.chessEngine = new Chess();
             
-            // Load position from FEN (more reliable than PGN)
-            if (savedState.fen) {
+            // Load position from PGN to restore move history
+            // PGN is more important than FEN because it preserves the full game
+            if (savedState.pgn && savedState.pgn.trim() !== '') {
+                try {
+                    this.chessEngine.load_pgn(savedState.pgn);
+                    console.log('📂 Loaded game from PGN with', this.chessEngine.history().length, 'moves');
+                } catch (e) {
+                    console.warn('Failed to load PGN, trying FEN:', e);
+                    if (savedState.fen) {
+                        this.chessEngine.load(savedState.fen);
+                    }
+                }
+            } else if (savedState.fen) {
                 this.chessEngine.load(savedState.fen);
-            } else if (savedState.pgn) {
-                this.chessEngine.load_pgn(savedState.pgn);
+                console.log('📂 Loaded game from FEN (no move history)');
             } else {
                 throw new Error('No valid position data');
             }
@@ -1735,6 +1954,9 @@ class ChessUI {
             this.takebackCount = savedState.takebackCount || 0;
             this.moveTimes = savedState.moveTimes || [];
             this.moveStartTime = Date.now();
+            
+            console.log('📂 Restored move times:', this.moveTimes.length, 'entries');
+            console.log('📂 Current position:', this.chessEngine.fen());
             this.maxTakebacks = this.gameSettings.difficulty === 'too-easy' ? Infinity : 
                                this.gameSettings.difficulty === 'just-for-fun' ? 3 : 0;
             
@@ -1751,9 +1973,10 @@ class ChessUI {
             // Create and render the board
             this.createBoard();
             this.updateBoard();
+            this.updateMoveList(); // Restore move list display
             this.updateGameUI();
             
-            console.log('✅ Game restored successfully');
+            console.log('✅ Game restored successfully with', this.chessEngine.history().length, 'moves');
             showNotification('Game restored', 'success', 2000);
             
             // If it's bot's turn, make bot move

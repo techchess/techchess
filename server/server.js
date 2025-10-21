@@ -286,44 +286,6 @@ app.post('/api/game-result', authenticateToken, (req, res) => {
     }});
 });
 
-// Get user settings (protected route)
-app.get('/api/settings', authenticateToken, (req, res) => {
-    const user = users.find(u => u.id === req.user.id);
-    if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Return settings or defaults
-    res.json({
-        pieceStyle: user.pieceStyle || 'classic',
-        boardColor: user.boardColor || 'brown'
-    });
-});
-
-// Update user settings (protected route)
-app.post('/api/settings', authenticateToken, (req, res) => {
-    const { pieceStyle, boardColor } = req.body;
-    
-    const user = users.find(u => u.id === req.user.id);
-    if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Update settings
-    if (pieceStyle) user.pieceStyle = pieceStyle;
-    if (boardColor) user.boardColor = boardColor;
-
-    saveUsers();
-
-    res.json({ 
-        success: true, 
-        settings: { 
-            pieceStyle: user.pieceStyle, 
-            boardColor: user.boardColor 
-        } 
-    });
-});
-
 // Save current game (protected route)
 app.post('/api/save-game', authenticateToken, (req, res) => {
     const { position, move, pgn, settings, moveHistory, moveTimes, takebackCount } = req.body;
@@ -387,6 +349,135 @@ app.delete('/api/delete-game', authenticateToken, (req, res) => {
     res.json({ 
         success: true, 
         message: 'Game deleted successfully'
+    });
+});
+
+// Save completed game to archive (protected route)
+app.post('/api/archive-game', authenticateToken, (req, res) => {
+    const { pgn, userColor, botColor, result, terminationReason, moveCount, timestamp } = req.body;
+    
+    const user = users.find(u => u.id === req.user.id);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Initialize games array if it doesn't exist
+    if (!user.archivedGames) {
+        user.archivedGames = [];
+    }
+
+    // Create archived game object
+    const archivedGame = {
+        id: Date.now().toString(),
+        username: user.username,
+        userColor: userColor,
+        botColor: botColor,
+        pgn: pgn,
+        result: result, // 'win', 'loss', 'draw'
+        terminationReason: terminationReason, // 'checkmate', 'resign', 'stalemate', 'insufficient material', etc.
+        moveCount: moveCount || 0,
+        timestamp: timestamp || new Date().toISOString()
+    };
+
+    // Add to user's archived games
+    user.archivedGames.push(archivedGame);
+    
+    // Keep only last 50 games to prevent database bloat
+    if (user.archivedGames.length > 50) {
+        user.archivedGames = user.archivedGames.slice(-50);
+    }
+
+    saveUsers();
+
+    res.json({ 
+        success: true, 
+        message: 'Game archived successfully',
+        gameId: archivedGame.id
+    });
+});
+
+// Get user's archived games (protected route)
+app.get('/api/archived-games', authenticateToken, (req, res) => {
+    const user = users.find(u => u.id === req.user.id);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    const games = user.archivedGames || [];
+    
+    // Return games in reverse chronological order (newest first)
+    res.json({ 
+        success: true, 
+        games: games.reverse()
+    });
+});
+
+// Get specific archived game (protected route)
+app.get('/api/archived-games/:gameId', authenticateToken, (req, res) => {
+    const { gameId } = req.params;
+    const user = users.find(u => u.id === req.user.id);
+    
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    const game = (user.archivedGames || []).find(g => g.id === gameId);
+    
+    if (!game) {
+        return res.status(404).json({ error: 'Game not found' });
+    }
+
+    res.json({ 
+        success: true, 
+        game: game
+    });
+});
+
+// Save user settings (protected route)
+app.post('/api/settings', authenticateToken, (req, res) => {
+    const { pieceStyle, boardTheme, difficulty } = req.body;
+    
+    const user = users.find(u => u.id === req.user.id);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Initialize settings if they don't exist
+    if (!user.settings) {
+        user.settings = {};
+    }
+
+    // Update settings
+    if (pieceStyle) user.settings.pieceStyle = pieceStyle;
+    if (boardTheme) user.settings.boardTheme = boardTheme;
+    if (difficulty) user.settings.difficulty = difficulty;
+
+    saveUsers();
+
+    res.json({ 
+        success: true, 
+        message: 'Settings saved successfully',
+        settings: user.settings
+    });
+});
+
+// Get user settings (protected route)
+app.get('/api/settings', authenticateToken, (req, res) => {
+    const user = users.find(u => u.id === req.user.id);
+    
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    const settings = user.settings || {
+        pieceStyle: 'classic',
+        boardTheme: 'brown',
+        difficulty: 'just-for-fun'
+    };
+
+    res.json({ 
+        success: true, 
+        settings: settings
     });
 });
 

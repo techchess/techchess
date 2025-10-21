@@ -94,7 +94,14 @@ signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     console.log('🔥 SIGNUP FORM SUBMITTED!');
 
-    const username = document.getElementById('username').value.trim();
+    // Check if we're on the signup form or verification form
+    const usernameInput = document.getElementById('username');
+    if (!usernameInput) {
+        // We're on the verification screen, let the verification handler deal with it
+        return;
+    }
+
+    const username = usernameInput.value.trim();
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirm-password').value;
     

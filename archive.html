@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Archive - Tech Chess</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="css/main.css?v=4">
+    <link rel="stylesheet" href="css/board.css">
+    <script src="js/auth-check.js"></script>
+</head>
+<body>
+    <!-- Archive Page -->
+    <div class="settings-page">
+        <!-- Sidebar -->
+        <div class="menu-sidebar">
+            <a href="index.html" class="menu-sidebar-btn">Play</a>
+            <a href="archive.html" class="menu-sidebar-btn active">Archive</a>
+            <a href="settings.html" class="menu-sidebar-btn">Settings</a>
+            <div style="margin-top: auto; padding: 1rem; border-top: 2px solid rgba(255,255,255,0.1);">
+                <div id="user-info" style="color: white; margin-bottom: 0.5rem; font-size: 0.9rem;"></div>
+                <button id="logout-btn" style="width: 100%; padding: 0.5rem; background: rgba(255,0,0,0.2); color: white; border: 1px solid rgba(255,0,0,0.5); border-radius: 5px; cursor: pointer;">Logout</button>
+            </div>
+        </div>
+        
+        <!-- Archive Content -->
+        <div class="settings-container">
+            <h1>Game Archive</h1>
+            
+            <div id="archive-loading" class="archive-loading">
+                <p>Loading your games...</p>
+            </div>
+            
+            <div id="archive-content" class="archive-content" style="display: none;">
+                <div id="games-list" class="games-list">
+                    <!-- Games will be loaded here -->
+                </div>
+            </div>
+            
+            <div id="archive-empty" class="archive-empty" style="display: none;">
+                <p>No archived games yet. Complete a game to see it here!</p>
+                <a href="index.html" class="start-btn" style="width: auto; display: inline-block; margin-top: 1rem;">Play a Game</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        // Display user info and handle logout
+        document.addEventListener('DOMContentLoaded', async () => {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const userInfoDiv = document.getElementById('user-info');
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            if (currentUser.username) {
+                userInfoDiv.textContent = `👤 ${currentUser.username}`;
+            }
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'landing.html';
+                });
+            }
+
+            // Load archived games
+            await loadArchivedGames();
+        });
+
+        async function loadArchivedGames() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                showNotification('Please log in to view your games', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/archived-games`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                document.getElementById('archive-loading').style.display = 'none';
+
+                if (data.success && data.games && data.games.length > 0) {
+                    document.getElementById('archive-content').style.display = 'block';
+                    displayGames(data.games);
+                } else {
+                    document.getElementById('archive-empty').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Failed to load archived games:', error);
+                document.getElementById('archive-loading').innerHTML = '<p style="color: red;">Failed to load games. Please try again.</p>';
+            }
+        }
+
+        function displayGames(games) {
+            const gamesList = document.getElementById('games-list');
+            gamesList.innerHTML = '';
+
+            games.forEach(game => {
+                const gameCard = document.createElement('div');
+                gameCard.className = 'game-card';
+                
+                const date = new Date(game.timestamp).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const resultClass = game.result === 'win' ? 'result-win' : 
+                                   game.result === 'loss' ? 'result-loss' : 'result-draw';
+                
+                const resultText = game.result === 'win' ? 'Victory' : 
+                                  game.result === 'loss' ? 'Defeat' : 'Draw';
+
+                gameCard.innerHTML = `
+                    <div class="game-card-header">
+                        <div class="game-result ${resultClass}">${resultText}</div>
+                        <div class="game-date">${date}</div>
+                    </div>
+                    <div class="game-card-body">
+                        <div class="game-colors">
+                            <span>You: <strong>${game.userColor === 'white' ? 'White ♔' : 'Black ♚'}</strong></span>
+                            <span>Bot: <strong>${game.botColor === 'white' ? 'White ♔' : 'Black ♚'}</strong></span>
+                        </div>
+                        <div class="game-termination">${game.terminationReason}</div>
+                        <div class="game-moves">${game.moveCount} moves</div>
+                    </div>
+                    <div class="game-card-footer">
+                        <button class="view-game-btn" onclick="viewGame('${game.id}')">View Game</button>
+                    </div>
+                `;
+
+                gamesList.appendChild(gameCard);
+            });
+        }
+
+        async function viewGame(gameId) {
+            // Store game ID and redirect to game viewer
+            localStorage.setItem('viewGameId', gameId);
+            window.location.href = 'view-game.html';
+        }
+    </script>
+
+    <style>
+        .archive-content {
+            margin-top: 2rem;
+        }
+
+        .games-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Responsive grid for smaller screens */
+        @media (max-width: 1200px) {
+            .games-list {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .games-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .game-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .game-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .game-result {
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+        }
+
+        .result-win {
+            background: #9DC183;
+            color: white;
+        }
+
+        .result-loss {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .result-draw {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .game-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .game-card-body {
+            margin-bottom: 1rem;
+        }
+
+        .game-colors {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .game-termination {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 0.5rem;
+        }
+
+        .game-moves {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .game-card-footer {
+            text-align: center;
+        }
+
+        .view-game-btn {
+            padding: 0.75rem 2rem;
+            background: #76a852;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .view-game-btn:hover {
+            background: #9DC183;
+        }
+
+        .archive-loading, .archive-empty {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .archive-empty p {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</body>
+</html>
+
+
