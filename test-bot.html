@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Bitboard Bot - Tech Chess</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="css/board.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 2rem;
+            background: #5a7556;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .test-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 1200px;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: #76a852;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #9DC183;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .game-wrapper {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .info-panel {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            min-width: 300px;
+        }
+
+        .info-panel h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .info-item {
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        #status-message {
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 1rem;
+            background: #e3f2fd;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .game-wrapper {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Bitboard Bot Test</h1>
+        <div id="status-message">Select your color and start the game!</div>
+        
+        <div class="controls">
+            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="radio" name="color" value="white" checked> Play as White
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="radio" name="color" value="black"> Play as Black
+            </label>
+            <button class="btn" id="start-btn">Start New Game</button>
+            <button class="btn" id="reset-btn">Reset Board</button>
+            <button class="btn" id="copy-pgn-btn">Copy PGN</button>
+        </div>
+
+        <div class="game-wrapper">
+            <div id="chess-board" class="chess-board"></div>
+            
+            <div class="info-panel">
+                <h3>Game Info</h3>
+                <div class="info-item">
+                    <span class="info-label">To Move:</span>
+                    <span id="to-move">White</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Move Count:</span>
+                    <span id="move-count">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Move Time:</span>
+                    <span id="move-time">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Bot Depth:</span>
+                    <span id="bot-depth">3</span>
+                </div>
+                
+                <h3 style="margin-top: 1.5rem;">Moves</h3>
+                <div id="move-list" class="move-list" style="max-height: 300px; overflow-y: auto; background: white; padding: 0.5rem; border-radius: 5px;">
+                    <!-- Moves will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.js"></script>
+    <script src="js/bots/bitboard-engine.js"></script>
+    <script src="js/bots/bitboard-adapter.js"></script>
+    <script src="js/bots/martina-bitboard.js"></script>
+    <script src="js/sounds.js"></script>
+    
+    <script>
+        let chess = new Chess();
+        let selectedSquare = null;
+        let playerColor = 'white';
+        let gameActive = false;
+
+        // Initialize board
+        function createBoard() {
+            const board = document.getElementById('chess-board');
+            board.innerHTML = '';
+            board.className = 'chess-board board-brown';
+            
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    square.className = 'chess-square';
+                    
+                    if ((row + col) % 2 === 0) {
+                        square.classList.add('light');
+                    } else {
+                        square.classList.add('dark');
+                    }
+                    
+                    const file = String.fromCharCode(97 + col);
+                    const rank = 8 - row;
+                    const squareNotation = `${file}${rank}`;
+                    square.dataset.square = squareNotation;
+                    
+                    square.addEventListener('click', () => handleSquareClick(squareNotation));
+                    
+                    board.appendChild(square);
+                }
+            }
+            
+            renderBoard();
+        }
+
+        function renderBoard() {
+            const squares = document.querySelectorAll('.chess-square');
+            squares.forEach(square => {
+                const squareNotation = square.dataset.square;
+                const piece = chess.get(squareNotation);
+                
+                // Clear existing piece
+                const existingPiece = square.querySelector('.chess-piece');
+                if (existingPiece) {
+                    existingPiece.remove();
+                }
+                
+                // Clear highlights
+                square.classList.remove('selected', 'possible-move');
+                
+                if (piece) {
+                    const pieceDiv = document.createElement('div');
+                    pieceDiv.className = 'chess-piece';
+                    const color = piece.color === 'w' ? 'w' : 'b';
+                    const type = piece.type.toLowerCase();
+                    pieceDiv.style.backgroundImage = `url('images/classic-${color}${type}.png')`;
+                    pieceDiv.style.backgroundSize = 'contain';
+                    pieceDiv.style.backgroundRepeat = 'no-repeat';
+                    pieceDiv.style.backgroundPosition = 'center';
+                    square.appendChild(pieceDiv);
+                }
+            });
+            
+            updateGameInfo();
+        }
+
+        function handleSquareClick(square) {
+            if (!gameActive) {
+                console.log('Game not active');
+                return;
+            }
+            
+            const currentTurn = chess.turn() === 'w' ? 'white' : 'black';
+            if (currentTurn !== playerColor) {
+                console.log('Not your turn:', currentTurn, 'vs', playerColor);
+                return;
+            }
+            
+            if (selectedSquare) {
+                // Try to make a move
+                const move = chess.move({
+                    from: selectedSquare,
+                    to: square,
+                    promotion: 'q'
+                });
+                
+                if (move) {
+                    console.log('Move made:', move);
+                    const isCheck = chess.in_check();
+                    const isCheckmate = chess.in_checkmate();
+                    playMoveSound(move, isCheck, isCheckmate);
+                    selectedSquare = null;
+                    renderBoard();
+                    
+                    if (chess.game_over()) {
+                        handleGameOver();
+                    } else {
+                        // Bot's turn
+                        setTimeout(() => makeBotMove(), 300);
+                    }
+                } else {
+                    console.log('Invalid move from', selectedSquare, 'to', square);
+                    // Try selecting new piece
+                    const piece = chess.get(square);
+                    if (piece && piece.color === chess.turn()) {
+                        selectedSquare = square;
+                        highlightMoves(square);
+                    } else {
+                        selectedSquare = null;
+                        renderBoard();
+                    }
+                }
+            } else {
+                // Select piece
+                const piece = chess.get(square);
+                if (piece && piece.color === chess.turn()) {
+                    selectedSquare = square;
+                    highlightMoves(square);
+                }
+            }
+        }
+
+        function highlightMoves(square) {
+            renderBoard();
+            
+            const squareEl = document.querySelector(`[data-square="${square}"]`);
+            if (squareEl) {
+                squareEl.classList.add('selected');
+            }
+            
+            const moves = chess.moves({ square: square, verbose: true });
+            moves.forEach(move => {
+                const targetSquare = document.querySelector(`[data-square="${move.to}"]`);
+                if (targetSquare) {
+                    targetSquare.classList.add('possible-move');
+                }
+            });
+        }
+
+        async function makeBotMove() {
+            if (!gameActive || chess.game_over()) return;
+            
+            document.getElementById('status-message').textContent = '🤖 Bot is thinking...';
+            
+            const startTime = performance.now();
+            
+            // Use the bitboard bot
+            const bestMove = await window.martinaBitboard.getBestMove(chess.fen(), 3);
+            
+            const endTime = performance.now();
+            const moveTime = ((endTime - startTime) / 1000).toFixed(2);
+            
+            if (bestMove) {
+                const move = chess.move(bestMove);
+                if (move) {
+                    const isCheck = chess.in_check();
+                    const isCheckmate = chess.in_checkmate();
+                    playMoveSound(move, isCheck, isCheckmate);
+                    document.getElementById('move-time').textContent = `${moveTime}s`;
+                    renderBoard();
+                    
+                    if (chess.game_over()) {
+                        handleGameOver();
+                    } else {
+                        document.getElementById('status-message').textContent = 'Your turn!';
+                    }
+                }
+            }
+        }
+
+        function updateGameInfo() {
+            const turn = chess.turn() === 'w' ? 'White' : 'Black';
+            document.getElementById('to-move').textContent = turn;
+            document.getElementById('move-count').textContent = chess.history().length;
+            
+            // Update move list
+            const moveList = document.getElementById('move-list');
+            const history = chess.history();
+            moveList.innerHTML = '';
+            
+            for (let i = 0; i < history.length; i += 2) {
+                const moveNum = Math.floor(i / 2) + 1;
+                const whiteMove = history[i];
+                const blackMove = history[i + 1] || '';
+                
+                const moveRow = document.createElement('div');
+                moveRow.textContent = `${moveNum}. ${whiteMove} ${blackMove}`;
+                moveRow.style.padding = '0.25rem';
+                moveList.appendChild(moveRow);
+            }
+            
+            // Scroll to bottom
+            moveList.scrollTop = moveList.scrollHeight;
+        }
+
+        function handleGameOver() {
+            gameActive = false;
+            let message = '';
+            
+            if (chess.in_checkmate()) {
+                const winner = chess.turn() === 'w' ? 'Black' : 'White';
+                message = `🎉 Checkmate! ${winner} wins!`;
+            } else if (chess.in_stalemate()) {
+                message = '🤝 Stalemate! Draw.';
+            } else if (chess.in_threefold_repetition()) {
+                message = '🤝 Draw by threefold repetition.';
+            } else if (chess.insufficient_material()) {
+                message = '🤝 Draw by insufficient material.';
+            } else if (chess.in_draw()) {
+                message = '🤝 Draw!';
+            }
+            
+            document.getElementById('status-message').textContent = message;
+        }
+
+        function startNewGame() {
+            playerColor = document.querySelector('input[name="color"]:checked').value;
+            chess.reset();
+            selectedSquare = null;
+            gameActive = true;
+            
+            createBoard();
+            document.getElementById('move-time').textContent = '-';
+            document.getElementById('status-message').textContent = playerColor === 'white' ? 'Your turn!' : 'Bot starts...';
+            
+            if (playerColor === 'black') {
+                setTimeout(() => makeBotMove(), 500);
+            }
+        }
+
+        function copyPGN() {
+            const pgn = chess.pgn();
+            navigator.clipboard.writeText(pgn).then(() => {
+                alert('PGN copied to clipboard!');
+            });
+        }
+
+        // Event listeners
+        document.getElementById('start-btn').addEventListener('click', startNewGame);
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            chess.reset();
+            selectedSquare = null;
+            gameActive = false;
+            renderBoard();
+            document.getElementById('status-message').textContent = 'Select your color and start the game!';
+        });
+        document.getElementById('copy-pgn-btn').addEventListener('click', copyPGN);
+
+        // Initialize on load
+        createBoard();
+    </script>
+</body>
+</html>
+

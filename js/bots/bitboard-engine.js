@@ -202,19 +202,19 @@ class BitboardEngine {
     getPieceAt(square) {
         const squareBit = 1n << BigInt(square);
         
-        if (squareBit & this.whitePawns) return { piece: 'p', color: 'w' };
-        if (squareBit & this.whiteKnights) return { piece: 'n', color: 'w' };
-        if (squareBit & this.whiteBishops) return { piece: 'b', color: 'w' };
-        if (squareBit & this.whiteRooks) return { piece: 'r', color: 'w' };
-        if (squareBit & this.whiteQueens) return { piece: 'q', color: 'w' };
-        if (squareBit & this.whiteKing) return { piece: 'k', color: 'w' };
+        if ((squareBit & this.whitePawns) !== 0n) return { piece: 'p', color: 'w' };
+        if ((squareBit & this.whiteKnights) !== 0n) return { piece: 'n', color: 'w' };
+        if ((squareBit & this.whiteBishops) !== 0n) return { piece: 'b', color: 'w' };
+        if ((squareBit & this.whiteRooks) !== 0n) return { piece: 'r', color: 'w' };
+        if ((squareBit & this.whiteQueens) !== 0n) return { piece: 'q', color: 'w' };
+        if ((squareBit & this.whiteKing) !== 0n) return { piece: 'k', color: 'w' };
         
-        if (squareBit & this.blackPawns) return { piece: 'p', color: 'b' };
-        if (squareBit & this.blackKnights) return { piece: 'n', color: 'b' };
-        if (squareBit & this.blackBishops) return { piece: 'b', color: 'b' };
-        if (squareBit & this.blackRooks) return { piece: 'r', color: 'b' };
-        if (squareBit & this.blackQueens) return { piece: 'q', color: 'b' };
-        if (squareBit & this.blackKing) return { piece: 'k', color: 'b' };
+        if ((squareBit & this.blackPawns) !== 0n) return { piece: 'p', color: 'b' };
+        if ((squareBit & this.blackKnights) !== 0n) return { piece: 'n', color: 'b' };
+        if ((squareBit & this.blackBishops) !== 0n) return { piece: 'b', color: 'b' };
+        if ((squareBit & this.blackRooks) !== 0n) return { piece: 'r', color: 'b' };
+        if ((squareBit & this.blackQueens) !== 0n) return { piece: 'q', color: 'b' };
+        if ((squareBit & this.blackKing) !== 0n) return { piece: 'k', color: 'b' };
         
         return null;
     }
@@ -275,43 +275,52 @@ class BitboardEngine {
      * Check if a square is attacked by the given color
      */
     isSquareAttacked(square, byColor) {
+        // Check for invalid square
+        if (square < 0 || square >= 64) return false;
+        
         const squareBit = 1n << BigInt(square);
         const blockers = this.allPieces;
         
         if (byColor === 'w') {
             // Check pawn attacks
-            if (this.pawnAttacks.black[square] & this.whitePawns) return true;
+            const pawnAttack = this.pawnAttacks.black[square];
+            if (pawnAttack !== undefined && (pawnAttack & this.whitePawns) !== 0n) return true;
             
             // Check knight attacks
-            if (this.knightAttacks[square] & this.whiteKnights) return true;
+            const knightAttack = this.knightAttacks[square];
+            if (knightAttack !== undefined && (knightAttack & this.whiteKnights) !== 0n) return true;
             
             // Check king attacks
-            if (this.kingAttacks[square] & this.whiteKing) return true;
+            const kingAttack = this.kingAttacks[square];
+            if (kingAttack !== undefined && (kingAttack & this.whiteKing) !== 0n) return true;
             
             // Check bishop/queen attacks
             const bishopAttacks = this.getBishopAttacks(square, blockers);
-            if (bishopAttacks & (this.whiteBishops | this.whiteQueens)) return true;
+            if ((bishopAttacks & (this.whiteBishops | this.whiteQueens)) !== 0n) return true;
             
             // Check rook/queen attacks
             const rookAttacks = this.getRookAttacks(square, blockers);
-            if (rookAttacks & (this.whiteRooks | this.whiteQueens)) return true;
+            if ((rookAttacks & (this.whiteRooks | this.whiteQueens)) !== 0n) return true;
         } else {
             // Check pawn attacks
-            if (this.pawnAttacks.white[square] & this.blackPawns) return true;
+            const pawnAttack = this.pawnAttacks.white[square];
+            if (pawnAttack !== undefined && (pawnAttack & this.blackPawns) !== 0n) return true;
             
             // Check knight attacks
-            if (this.knightAttacks[square] & this.blackKnights) return true;
+            const knightAttack = this.knightAttacks[square];
+            if (knightAttack !== undefined && (knightAttack & this.blackKnights) !== 0n) return true;
             
             // Check king attacks
-            if (this.kingAttacks[square] & this.blackKing) return true;
+            const kingAttack = this.kingAttacks[square];
+            if (kingAttack !== undefined && (kingAttack & this.blackKing) !== 0n) return true;
             
             // Check bishop/queen attacks
             const bishopAttacks = this.getBishopAttacks(square, blockers);
-            if (bishopAttacks & (this.blackBishops | this.blackQueens)) return true;
+            if ((bishopAttacks & (this.blackBishops | this.blackQueens)) !== 0n) return true;
             
             // Check rook/queen attacks
             const rookAttacks = this.getRookAttacks(square, blockers);
-            if (rookAttacks & (this.blackRooks | this.blackQueens)) return true;
+            if ((rookAttacks & (this.blackRooks | this.blackQueens)) !== 0n) return true;
         }
         
         return false;
@@ -321,9 +330,16 @@ class BitboardEngine {
      * Check if the current side to move is in check
      */
     inCheck() {
-        const kingBitboard = this.whiteToMove ? this.whiteKing : this.blackKing;
+        return this.isKingInCheck(this.whiteToMove);
+    }
+    
+    /**
+     * Check if a specific side's king is in check
+     */
+    isKingInCheck(forWhite) {
+        const kingBitboard = forWhite ? this.whiteKing : this.blackKing;
         const kingSquare = this.bitScanForward(kingBitboard);
-        const attackingColor = this.whiteToMove ? 'b' : 'w';
+        const attackingColor = forWhite ? 'b' : 'w';
         return this.isSquareAttacked(kingSquare, attackingColor);
     }
     
@@ -358,8 +374,20 @@ class BitboardEngine {
      * Generate all legal moves for the current position
      * Returns array of move objects: { from, to, piece, captured, promotion, flags }
      */
-    generateMoves(capturesOnly = false, skipLegalityCheck = false) {
+    generateMoves(capturesOnly = false) {
         const moves = [];
+        
+        // Generate pseudo-legal moves first
+        this.generatePseudoLegalMoves(moves, capturesOnly);
+        
+        // Filter for legal moves (without infinite recursion)
+        return this.filterLegalMoves(moves);
+    }
+    
+    /**
+     * Generate pseudo-legal moves (moves that follow piece rules but may leave king in check)
+     */
+    generatePseudoLegalMoves(moves, capturesOnly = false) {
         const friendlyPieces = this.whiteToMove ? this.whitePieces : this.blackPieces;
         const enemyPieces = this.whiteToMove ? this.blackPieces : this.whitePieces;
         
@@ -378,22 +406,133 @@ class BitboardEngine {
             this.generateQueenMoves(moves, this.blackQueens, friendlyPieces, enemyPieces, capturesOnly);
             this.generateKingMoves(moves, this.blackKing, friendlyPieces, enemyPieces, capturesOnly);
         }
-        
-        // Skip legality check for speed (use only for quiescence search)
-        if (skipLegalityCheck) {
-            return moves;
-        }
-        
-        // Filter out moves that leave king in check (expensive but necessary for legal moves)
+    }
+    
+    /**
+     * Filter pseudo-legal moves to only include legal moves
+     * Uses direct state manipulation instead of makeMove/unmakeMove to avoid infinite recursion
+     */
+    filterLegalMoves(pseudoLegalMoves) {
         const legalMoves = [];
-        for (const move of moves) {
-            this.makeMove(move);
-            if (!this.inCheck()) {
+        const currentSide = this.whiteToMove;
+        
+        for (const move of pseudoLegalMoves) {
+            if (this.isMoveLegal(move, currentSide)) {
                 legalMoves.push(move);
             }
-            this.unmakeMove();
         }
+        
         return legalMoves;
+    }
+    
+    /**
+     * Check if a move is legal by simulating it without using makeMove/unmakeMove
+     */
+    isMoveLegal(move, forWhite) {
+        const { from, to, piece, captured, flags } = move;
+        
+        // Save current state
+        const originalPieces = this.saveCurrentState();
+        
+        // Simulate the move directly on bitboards
+        this.simulateMove(move, forWhite);
+        
+        // Check if king is in check after the move
+        const kingInCheck = this.isKingInCheck(forWhite);
+        
+        // Restore original state
+        this.restoreState(originalPieces);
+        
+        return !kingInCheck;
+    }
+    
+    /**
+     * Save current bitboard state
+     */
+    saveCurrentState() {
+        return {
+            whitePawns: this.whitePawns,
+            whiteKnights: this.whiteKnights,
+            whiteBishops: this.whiteBishops,
+            whiteRooks: this.whiteRooks,
+            whiteQueens: this.whiteQueens,
+            whiteKing: this.whiteKing,
+            blackPawns: this.blackPawns,
+            blackKnights: this.blackKnights,
+            blackBishops: this.blackBishops,
+            blackRooks: this.blackRooks,
+            blackQueens: this.blackQueens,
+            blackKing: this.blackKing,
+            whitePieces: this.whitePieces,
+            blackPieces: this.blackPieces,
+            allPieces: this.allPieces
+        };
+    }
+    
+    /**
+     * Restore bitboard state
+     */
+    restoreState(state) {
+        this.whitePawns = state.whitePawns;
+        this.whiteKnights = state.whiteKnights;
+        this.whiteBishops = state.whiteBishops;
+        this.whiteRooks = state.whiteRooks;
+        this.whiteQueens = state.whiteQueens;
+        this.whiteKing = state.whiteKing;
+        this.blackPawns = state.blackPawns;
+        this.blackKnights = state.blackKnights;
+        this.blackBishops = state.blackBishops;
+        this.blackRooks = state.blackRooks;
+        this.blackQueens = state.blackQueens;
+        this.blackKing = state.blackKing;
+        this.whitePieces = state.whitePieces;
+        this.blackPieces = state.blackPieces;
+        this.allPieces = state.allPieces;
+    }
+    
+    /**
+     * Simulate a move directly on bitboards without full makeMove logic
+     */
+    simulateMove(move, forWhite) {
+        const { from, to, piece, captured, flags } = move;
+        
+        // Get source bitboard
+        const sourceBitboard = this.getBitboardForPiece(piece, forWhite);
+        
+        // Remove piece from source
+        this[sourceBitboard] = this.clearBit(this[sourceBitboard], from);
+        
+        // Handle captures
+        if (captured) {
+            const capturedBitboard = this.getBitboardForPiece(captured, !forWhite);
+            const captureSquare = flags === 'ep-capture' ? (forWhite ? to - 8 : to + 8) : to;
+            this[capturedBitboard] = this.clearBit(this[capturedBitboard], captureSquare);
+        }
+        
+        // Add piece to destination
+        this[sourceBitboard] = this.setBit(this[sourceBitboard], to);
+        
+        // Handle castling rook moves
+        if (flags === 'castle-kingside') {
+            if (forWhite) {
+                this.whiteRooks = this.clearBit(this.whiteRooks, 7);
+                this.whiteRooks = this.setBit(this.whiteRooks, 5);
+            } else {
+                this.blackRooks = this.clearBit(this.blackRooks, 63);
+                this.blackRooks = this.setBit(this.blackRooks, 61);
+            }
+        } else if (flags === 'castle-queenside') {
+            if (forWhite) {
+                this.whiteRooks = this.clearBit(this.whiteRooks, 0);
+                this.whiteRooks = this.setBit(this.whiteRooks, 3);
+            } else {
+                this.blackRooks = this.clearBit(this.blackRooks, 56);
+                this.blackRooks = this.setBit(this.blackRooks, 59);
+            }
+        }
+        
+        // Update composite bitboards
+        this.updateCompositeBitboards();
     }
     
     /**
@@ -437,6 +576,10 @@ class BitboardEngine {
             
             // Captures
             const captureSquares = isWhite ? this.pawnAttacks.white[from] : this.pawnAttacks.black[from];
+            if (captureSquares === undefined) {
+                pawnBitboard = this.clearBit(pawnBitboard, from);
+                continue;
+            }
             let captures = captureSquares & enemy;
             
             while (captures !== 0n) {
@@ -476,7 +619,12 @@ class BitboardEngine {
         
         while (knightBitboard !== 0n) {
             const from = this.bitScanForward(knightBitboard);
-            let targets = this.knightAttacks[from] & ~friendly;
+            const knightAttack = this.knightAttacks[from];
+            if (knightAttack === undefined) {
+                knightBitboard = this.clearBit(knightBitboard, from);
+                continue;
+            }
+            let targets = knightAttack & ~friendly;
             
             if (capturesOnly) {
                 targets &= enemy;
@@ -605,7 +753,12 @@ class BitboardEngine {
      */
     generateKingMoves(moves, king, friendly, enemy, capturesOnly) {
         const from = this.bitScanForward(king);
-        let targets = this.kingAttacks[from] & ~friendly;
+        if (from < 0) return; // No king found
+        
+        const kingAttack = this.kingAttacks[from];
+        if (kingAttack === undefined) return;
+        
+        let targets = kingAttack & ~friendly;
         
         if (capturesOnly) {
             targets &= enemy;
@@ -629,7 +782,7 @@ class BitboardEngine {
         // Castling (only if not capturesOnly)
         if (!capturesOnly && !this.inCheck()) {
             if (this.whiteToMove) {
-                // White kingside
+                // White kingside: e1 (4) to g1 (6), checking f1 (5) and g1 (6)
                 if ((this.castleRights & 0b1000) && 
                     !this.testBit(this.allPieces, 5) && 
                     !this.testBit(this.allPieces, 6) &&
@@ -637,7 +790,7 @@ class BitboardEngine {
                     !this.isSquareAttacked(6, 'b')) {
                     moves.push({ from: 4, to: 6, piece: 'k', flags: 'castle-kingside' });
                 }
-                // White queenside
+                // White queenside: e1 (4) to c1 (2), checking d1 (3), c1 (2), and b1 (1)
                 if ((this.castleRights & 0b0100) && 
                     !this.testBit(this.allPieces, 1) && 
                     !this.testBit(this.allPieces, 2) && 
@@ -647,7 +800,7 @@ class BitboardEngine {
                     moves.push({ from: 4, to: 2, piece: 'k', flags: 'castle-queenside' });
                 }
             } else {
-                // Black kingside
+                // Black kingside: e8 (60) to g8 (62), checking f8 (61) and g8 (62)
                 if ((this.castleRights & 0b0010) && 
                     !this.testBit(this.allPieces, 61) && 
                     !this.testBit(this.allPieces, 62) &&
@@ -655,7 +808,7 @@ class BitboardEngine {
                     !this.isSquareAttacked(62, 'w')) {
                     moves.push({ from: 60, to: 62, piece: 'k', flags: 'castle-kingside' });
                 }
-                // Black queenside
+                // Black queenside: e8 (60) to c8 (58), checking d8 (59), c8 (58), and b8 (57)
                 if ((this.castleRights & 0b0001) && 
                     !this.testBit(this.allPieces, 57) && 
                     !this.testBit(this.allPieces, 58) && 
@@ -696,6 +849,14 @@ class BitboardEngine {
             const captureSquare = flags === 'ep-capture' ? (isWhite ? to - 8 : to + 8) : to;
             this[capturedBitboard] = this.clearBit(this[capturedBitboard], captureSquare);
             this.halfmoveClock = 0;
+            
+            // Remove castling rights if a rook is captured on its starting square
+            if (captured === 'r') {
+                if (captureSquare === 0) this.castleRights &= 0b1011; // White queenside (a1)
+                if (captureSquare === 7) this.castleRights &= 0b0111; // White kingside (h1)
+                if (captureSquare === 56) this.castleRights &= 0b1110; // Black queenside (a8)
+                if (captureSquare === 63) this.castleRights &= 0b1101; // Black kingside (h8)
+            }
         } else if (piece === 'p') {
             this.halfmoveClock = 0;
         } else {
@@ -713,17 +874,21 @@ class BitboardEngine {
         // Handle castling
         if (flags === 'castle-kingside') {
             if (isWhite) {
+                // White: h1 (7) to f1 (5)
                 this.whiteRooks = this.clearBit(this.whiteRooks, 7);
                 this.whiteRooks = this.setBit(this.whiteRooks, 5);
             } else {
+                // Black: h8 (63) to f8 (61)
                 this.blackRooks = this.clearBit(this.blackRooks, 63);
                 this.blackRooks = this.setBit(this.blackRooks, 61);
             }
         } else if (flags === 'castle-queenside') {
             if (isWhite) {
+                // White: a1 (0) to d1 (3)
                 this.whiteRooks = this.clearBit(this.whiteRooks, 0);
                 this.whiteRooks = this.setBit(this.whiteRooks, 3);
             } else {
+                // Black: a8 (56) to d8 (59)
                 this.blackRooks = this.clearBit(this.blackRooks, 56);
                 this.blackRooks = this.setBit(this.blackRooks, 59);
             }
@@ -737,10 +902,10 @@ class BitboardEngine {
                 this.castleRights &= 0b1100; // Remove black castling rights
             }
         } else if (piece === 'r') {
-            if (from === 0) this.castleRights &= 0b1011; // White queenside
-            if (from === 7) this.castleRights &= 0b0111; // White kingside
-            if (from === 56) this.castleRights &= 0b1110; // Black queenside
-            if (from === 63) this.castleRights &= 0b1101; // Black kingside
+            if (from === 0) this.castleRights &= 0b1011; // White queenside (a1)
+            if (from === 7) this.castleRights &= 0b0111; // White kingside (h1)
+            if (from === 56) this.castleRights &= 0b1110; // Black queenside (a8)
+            if (from === 63) this.castleRights &= 0b1101; // Black kingside (h8)
         }
         
         // Update en passant square
@@ -758,6 +923,7 @@ class BitboardEngine {
         if (!isWhite) {
             this.fullmoveNumber++;
         }
+        
     }
     
     /**
@@ -769,16 +935,19 @@ class BitboardEngine {
         const move = this.moveHistory.pop();
         const state = this.stateHistory.pop();
         
+        
         // Restore state
         this.castleRights = state.castleRights;
         this.enPassantSquare = state.enPassantSquare;
         this.halfmoveClock = state.halfmoveClock;
         this.fullmoveNumber = state.fullmoveNumber;
         
-        // Switch sides back
+        const { from, to, piece, captured, promotion, flags } = move;
+        
+        // Switch sides back first
         this.whiteToMove = !this.whiteToMove;
         
-        const { from, to, piece, captured, promotion, flags } = move;
+        // isWhite should match the side that made the move (now matches whiteToMove after switch)
         const isWhite = this.whiteToMove;
         
         // Remove piece from target square
@@ -804,17 +973,21 @@ class BitboardEngine {
         // Undo castling rook moves
         if (flags === 'castle-kingside') {
             if (isWhite) {
+                // White: f1 (5) back to h1 (7)
                 this.whiteRooks = this.clearBit(this.whiteRooks, 5);
                 this.whiteRooks = this.setBit(this.whiteRooks, 7);
             } else {
+                // Black: f8 (61) back to h8 (63)
                 this.blackRooks = this.clearBit(this.blackRooks, 61);
                 this.blackRooks = this.setBit(this.blackRooks, 63);
             }
         } else if (flags === 'castle-queenside') {
             if (isWhite) {
+                // White: d1 (3) back to a1 (0)
                 this.whiteRooks = this.clearBit(this.whiteRooks, 3);
                 this.whiteRooks = this.setBit(this.whiteRooks, 0);
             } else {
+                // Black: d8 (59) back to a8 (56)
                 this.blackRooks = this.clearBit(this.blackRooks, 59);
                 this.blackRooks = this.setBit(this.blackRooks, 56);
             }
@@ -822,6 +995,7 @@ class BitboardEngine {
         
         // Update composite bitboards
         this.updateCompositeBitboards();
+        
     }
     
     /**
